@@ -1,7 +1,7 @@
--- You can add your own plugins here or in other files in this directory!
---  I promise not to create any merge conflicts in this directory :)
---
--- See the kickstart.nvim README for more information
+-- Custom plugins loader (vim.pack style, Neovim 0.12+).
+-- Every other *.lua file in this directory is executed for its side effects:
+-- call `vim.pack.add { ... }` directly in each file. Return values are ignored
+-- (there is no lazy.nvim spec handling here).
 
 -- Iterate over all Lua files in the plugins directory and load them
 local plugins_dir = vim.fs.joinpath(vim.fn.stdpath 'config', 'lua', 'custom', 'plugins')

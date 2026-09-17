@@ -974,11 +974,16 @@ do
   -- require 'kickstart.plugins.neo-tree'
   -- require 'kickstart.plugins.gitsigns' -- adds gitsigns recommended keymaps
 
-  -- NOTE: You can add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
-  --
-  --  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
-  -- require 'custom.plugins'
+ --  -- NOTE: You can add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
+ --  --
+ --  --  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
+ --  vim.cmd [[ set runtimepath+=~/.config/nvim/ ]]
+ --  vim.cmd [[ set runtimepath+=~/.config/nvim/lua/ ]]
+ --  vim.env.PATH = vim.env.HOME .. '/.local/bin:' .. '/usr/local/bin:'
+ -- .. vim.env.PATH
+ --  vim.opt.shell = '/usr/bin/bash'
+ --
+  require 'custom.plugins'
 end
-
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et

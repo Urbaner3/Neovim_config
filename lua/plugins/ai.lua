@@ -44,6 +44,14 @@ return {
   {
 
     "yetone/avante.nvim",
+    -- TEMPORARILY DISABLED (2026-09-17): avante's copilot provider hard
+    -- requires hosts.json/apps.json, but modern copilot clients (copilot.lua
+    -- and copilot.vim with the Copilot LSP) store tokens in auth.db only.
+    -- Upstream has not adapted get_oauth_token yet, so avante setup aborts
+    -- the whole startup with "Failed to run config". Re-enable by deleting
+    -- this line once upstream supports LSP-stored tokens or a token file
+    -- exists again. Copilot inline suggestions (copilot.vim) are unaffected.
+    enabled = false,
     build = vim.fn.has("win32") ~= 0 and "powershell -ExecutionPolicy Bypass -File Build.ps1 -BuildFromSource false"
       or "make",
     event = "VeryLazy",

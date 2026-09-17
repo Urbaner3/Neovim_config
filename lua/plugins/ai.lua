@@ -24,23 +24,22 @@ return {
     },
   },
   {
-    "zbirenbaum/copilot.lua",
-    cmd = "Copilot",
-    event = "InsertEnter",
-    opts = {
-      copilot_node_command = "node",
-      suggestion = {
-        enabled = true,
-        auto_trigger = false,
-        keymap = {
-          accept = "<M-l>",
-          next = "<M-]>",
-          prev = "<M-[>",
-          dismiss = "<C-]>",
-        },
-      },
-      panel = { enabled = false },
-    },
+    -- NOTE: copilot.vim (not copilot.lua) on purpose. Current copilot.lua
+    -- stores its token in auth.db and no longer writes hosts.json, which
+    -- avante's copilot provider still requires. copilot.vim writes
+    -- ~/.config/github-copilot/apps.json, which avante reads.
+    -- Auth once with :Copilot setup (device flow in browser).
+    "github/copilot.vim",
+    init = function()
+      vim.g.copilot_no_tab_map = true -- keep Tab for blink.cmp
+    end,
+    config = function()
+      -- Mirror the omarchy Alt-key bindings copilot.lua had.
+      vim.keymap.set("i", "<M-l>", 'copilot#Accept("\\<CR>")', { expr = true, replace_keycodes = false, desc = "Copilot accept" })
+      vim.keymap.set("i", "<M-]>", "<Plug>(copilot-next)", { desc = "Copilot next suggestion" })
+      vim.keymap.set("i", "<M-[>", "<Plug>(copilot-previous)", { desc = "Copilot previous suggestion" })
+      vim.keymap.set("i", "<C-]>", "<Plug>(copilot-dismiss)", { desc = "Copilot dismiss" })
+    end,
   },
   {
 
@@ -86,7 +85,7 @@ return {
       "stevearc/dressing.nvim",
       "folke/snacks.nvim",
       "nvim-tree/nvim-web-devicons",
-      "zbirenbaum/copilot.lua",
+      "github/copilot.vim",
       {
         "HakonHarnes/img-clip.nvim",
         event = "VeryLazy",

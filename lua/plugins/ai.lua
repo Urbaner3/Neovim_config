@@ -44,13 +44,17 @@ return {
   {
 
     "yetone/avante.nvim",
-    -- RE-ENABLED (2026-09-18): copilot provider with gpt-5-mini.
-    -- Avante only reads hosts.json/apps.json, but modern copilot clients
-    -- store the oauth token in auth.db only. Fix: hosts.json/apps.json are
-    -- bridged from auth.db (see ~/.config/github-copilot/). If you re-run
-    -- :Copilot setup, re-sync with:
-    --   python3 -c "import sqlite3,os,json; ..." (kept out of repo; never commit tokens)
-    -- config() uses pcall so a missing/expired token warns instead of
+    -- RE-ENABLED (2026-09-18): default provider = openrouter (free model).
+    -- copilot/gpt-5-mini returns model_not_supported on this account
+    -- (deprecated/renamed or not in Copilot Free allow-list), so default is
+    --   openrouter / deepseek/deepseek-v4-flash-0731:free  ($0, rate-limited)
+    -- NOTE: OpenRouter has NO "Muse Spark 1.4 free". Muse on OpenRouter is
+    -- only 1.1/1.2/1.3 (paid) and -contributor (ultra-cheap, trains on data).
+    -- Setup: get a key at https://openrouter.ai/keys then
+    --   export OPENROUTER_API_KEY="sk-or-..."   (never commit keys)
+    -- Switch models anytime with :AvanteSwitchProvider (copilot kept below
+    -- as fallback; needs hosts.json/apps.json bridged from auth.db).
+    -- config() uses pcall so a missing key/token warns instead of
     -- aborting the whole startup with "Failed to run config".
     enabled = true,
     build = vim.fn.has("win32") ~= 0 and "powershell -ExecutionPolicy Bypass -File Build.ps1 -BuildFromSource false"
@@ -59,8 +63,19 @@ return {
     version = false, -- Never set this value to "*"! Never!
     opts = {
       instructions_file = "AGENTS.md",
-      provider = "copilot",
+      provider = "openrouter",
       providers = {
+        openrouter = {
+          __inherited_from = "openai",
+          endpoint = "https://openrouter.ai/api/v1",
+          api_key_name = "OPENROUTER_API_KEY",
+          model = "deepseek/deepseek-v4-flash-0731:free",
+          timeout = 60000, -- free-tier models queue; allow more time
+          extra_request_body = {
+            temperature = 0.75,
+            max_tokens = 8192,
+          },
+        },
         copilot = {
           endpoint = "https://api.githubcopilot.com",
           model = "gpt-5-mini",
@@ -88,7 +103,10 @@ return {
       local ok, err = pcall(require("avante").setup, opts)
       if not ok then
         vim.schedule(function()
-          vim.notify("avante setup failed (copilot token?): " .. tostring(err), vim.log.levels.WARN)
+          vim.notify(
+            "avante setup failed (OPENROUTER_API_KEY or copilot token?): " .. tostring(err),
+            vim.log.levels.WARN
+          )
         end)
       end
     end,

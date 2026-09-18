@@ -44,14 +44,15 @@ return {
   {
 
     "yetone/avante.nvim",
-    -- TEMPORARILY DISABLED (2026-09-17): avante's copilot provider hard
-    -- requires hosts.json/apps.json, but modern copilot clients (copilot.lua
-    -- and copilot.vim with the Copilot LSP) store tokens in auth.db only.
-    -- Upstream has not adapted get_oauth_token yet, so avante setup aborts
-    -- the whole startup with "Failed to run config". Re-enable by deleting
-    -- this line once upstream supports LSP-stored tokens or a token file
-    -- exists again. Copilot inline suggestions (copilot.vim) are unaffected.
-    enabled = false,
+    -- RE-ENABLED (2026-09-18): copilot provider with gpt-5-mini.
+    -- Avante only reads hosts.json/apps.json, but modern copilot clients
+    -- store the oauth token in auth.db only. Fix: hosts.json/apps.json are
+    -- bridged from auth.db (see ~/.config/github-copilot/). If you re-run
+    -- :Copilot setup, re-sync with:
+    --   python3 -c "import sqlite3,os,json; ..." (kept out of repo; never commit tokens)
+    -- config() uses pcall so a missing/expired token warns instead of
+    -- aborting the whole startup with "Failed to run config".
+    enabled = true,
     build = vim.fn.has("win32") ~= 0 and "powershell -ExecutionPolicy Bypass -File Build.ps1 -BuildFromSource false"
       or "make",
     event = "VeryLazy",
@@ -83,6 +84,14 @@ return {
         }
       end,
     },
+    config = function(_, opts)
+      local ok, err = pcall(require("avante").setup, opts)
+      if not ok then
+        vim.schedule(function()
+          vim.notify("avante setup failed (copilot token?): " .. tostring(err), vim.log.levels.WARN)
+        end)
+      end
+    end,
     dependencies = {
       "nvim-lua/plenary.nvim",
       "MunifTanjim/nui.nvim",

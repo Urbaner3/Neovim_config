@@ -39,6 +39,21 @@ return {
       vim.keymap.set("i", "<M-]>", "<Plug>(copilot-next)", { desc = "Copilot next suggestion" })
       vim.keymap.set("i", "<M-[>", "<Plug>(copilot-previous)", { desc = "Copilot previous suggestion" })
       vim.keymap.set("i", "<C-]>", "<Plug>(copilot-dismiss)", { desc = "Copilot dismiss" })
+      -- 讓 blink 的 <Tab> 也能吃 copilot.vim 的灰字（ghost text）。
+      -- 原理：blink extra 的 <Tab> 會依序試 snippet_forward -> ai_nes -> ai_accept，
+      -- 但 LazyVim 預設只幫 copilot.lua 註冊 ai_accept，copilot.vim 沒有，
+      -- 所以 Ref.cpp 那種暗灰字按 CR（blink 選單接受）只會換行。要用 Tab/M-l 接受。
+      LazyVim.cmp.actions.ai_accept = function()
+        local ok, suggestion = pcall(vim.fn["copilot#GetDisplayedSuggestion"])
+        if ok and suggestion and suggestion.text ~= nil and suggestion.text ~= "" then
+          LazyVim.create_undo()
+          -- copilot#Accept() 回傳的已經是二進位 keycodes，直接 feed 即可，
+          -- 不可再過 nvim_replace_termcodes，否則 K_SPECIAL 會被二次轉義，
+          -- 變成插入的字面 %80 亂碼。
+          vim.api.nvim_feedkeys(vim.fn["copilot#Accept"](), "i", true)
+          return true
+        end
+      end
     end,
   },
   {

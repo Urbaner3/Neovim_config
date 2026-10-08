@@ -11,8 +11,16 @@ return {
       "Kaiser-Yang/blink-cmp-avante",
     },
     opts = {
+      -- C-Space 跟 Ubuntu 切輸入法衝突，補一個替代鍵叫出選單
+      -- 原本的 <C-Space> 保留，CR 仍是接受選單、C-y 強制接受第一項
+      keymap = {
+        ["<C-;>"] = { "show", "show_documentation", "hide_documentation" },
+        ["<M-Space>"] = { "show", "show_documentation", "hide_documentation" },
+      },
       sources = {
-        default = { "avante", "lsp", "path", "snippets", "buffer" },
+        -- 只加 avante 就好，lsp/path/snippets/buffer 已經在
+        -- LazyVim extras/coding/blink 裡（preset=enter），寫全會重複
+        default = { "avante" },
         providers = {
           avante = {
             module = "blink-cmp-avante",

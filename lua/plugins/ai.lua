@@ -11,8 +11,16 @@ return {
       "Kaiser-Yang/blink-cmp-avante",
     },
     opts = {
+      -- C-Space 跟 Ubuntu 切輸入法衝突，補一個替代鍵叫出選單
+      -- 原本的 <C-Space> 保留，CR 仍是接受選單、C-y 強制接受第一項
+      keymap = {
+        ["<C-;>"] = { "show", "show_documentation", "hide_documentation" },
+        ["<M-Space>"] = { "show", "show_documentation", "hide_documentation" },
+      },
       sources = {
-        default = { "avante", "lsp", "path", "snippets", "buffer" },
+        -- 只加 avante 就好，lsp/path/snippets/buffer 已經在
+        -- LazyVim extras/coding/blink 裡（preset=enter），寫全會重複
+        default = { "avante" },
         providers = {
           avante = {
             module = "blink-cmp-avante",
@@ -39,27 +47,58 @@ return {
       vim.keymap.set("i", "<M-]>", "<Plug>(copilot-next)", { desc = "Copilot next suggestion" })
       vim.keymap.set("i", "<M-[>", "<Plug>(copilot-previous)", { desc = "Copilot previous suggestion" })
       vim.keymap.set("i", "<C-]>", "<Plug>(copilot-dismiss)", { desc = "Copilot dismiss" })
+      -- 讓 blink 的 <Tab> 也能吃 copilot.vim 的灰字（ghost text）。
+      -- 原理：blink extra 的 <Tab> 會依序試 snippet_forward -> ai_nes -> ai_accept，
+      -- 但 LazyVim 預設只幫 copilot.lua 註冊 ai_accept，copilot.vim 沒有，
+      -- 所以 Ref.cpp 那種暗灰字按 CR（blink 選單接受）只會換行。要用 Tab/M-l 接受。
+      LazyVim.cmp.actions.ai_accept = function()
+        local ok, suggestion = pcall(vim.fn["copilot#GetDisplayedSuggestion"])
+        if ok and suggestion and suggestion.text ~= nil and suggestion.text ~= "" then
+          LazyVim.create_undo()
+          -- copilot#Accept() 回傳的已經是二進位 keycodes，直接 feed 即可，
+          -- 不可再過 nvim_replace_termcodes，否則 K_SPECIAL 會被二次轉義，
+          -- 變成插入的字面 %80 亂碼。
+          vim.api.nvim_feedkeys(vim.fn["copilot#Accept"](), "i", true)
+          return true
+        end
+      end
     end,
   },
   {
 
     "yetone/avante.nvim",
-    -- TEMPORARILY DISABLED (2026-09-17): avante's copilot provider hard
-    -- requires hosts.json/apps.json, but modern copilot clients (copilot.lua
-    -- and copilot.vim with the Copilot LSP) store tokens in auth.db only.
-    -- Upstream has not adapted get_oauth_token yet, so avante setup aborts
-    -- the whole startup with "Failed to run config". Re-enable by deleting
-    -- this line once upstream supports LSP-stored tokens or a token file
-    -- exists again. Copilot inline suggestions (copilot.vim) are unaffected.
-    enabled = false,
+    -- RE-ENABLED (2026-09-18): default provider = openrouter (free model).
+    -- copilot/gpt-5-mini returns model_not_supported on this account
+    -- (deprecated/renamed or not in Copilot Free allow-list), so default is
+    --   openrouter / deepseek/deepseek-v4-flash-0731:free  ($0, rate-limited)
+    -- NOTE: OpenRouter has NO "Muse Spark 1.4 free". Muse on OpenRouter is
+    -- only 1.1/1.2/1.3 (paid) and -contributor (ultra-cheap, trains on data).
+    -- Setup: get a key at https://openrouter.ai/keys then
+    --   export OPENROUTER_API_KEY="sk-or-..."   (never commit keys)
+    -- Switch models anytime with :AvanteSwitchProvider (copilot kept below
+    -- as fallback; needs hosts.json/apps.json bridged from auth.db).
+    -- config() uses pcall so a missing key/token warns instead of
+    -- aborting the whole startup with "Failed to run config".
+    enabled = true,
     build = vim.fn.has("win32") ~= 0 and "powershell -ExecutionPolicy Bypass -File Build.ps1 -BuildFromSource false"
       or "make",
     event = "VeryLazy",
     version = false, -- Never set this value to "*"! Never!
     opts = {
       instructions_file = "AGENTS.md",
-      provider = "copilot",
+      provider = "openrouter",
       providers = {
+        openrouter = {
+          __inherited_from = "openai",
+          endpoint = "https://openrouter.ai/api/v1",
+          api_key_name = "OPENROUTER_API_KEY",
+          model = "deepseek/deepseek-v4-flash-0731:free",
+          timeout = 60000, -- free-tier models queue; allow more time
+          extra_request_body = {
+            temperature = 0.75,
+            max_tokens = 8192,
+          },
+        },
         copilot = {
           endpoint = "https://api.githubcopilot.com",
           model = "gpt-5-mini",
@@ -83,9 +122,22 @@ return {
         }
       end,
     },
+    config = function(_, opts)
+      local ok, err = pcall(require("avante").setup, opts)
+      if not ok then
+        vim.schedule(function()
+          vim.notify(
+            "avante setup failed (OPENROUTER_API_KEY or copilot token?): " .. tostring(err),
+            vim.log.levels.WARN
+          )
+        end)
+      end
+    end,
     dependencies = {
       "nvim-lua/plenary.nvim",
       "MunifTanjim/nui.nvim",
+      -- avante 上游必備依賴（缺了會 Failed to source plugin/avante.lua: mega.cmdparse not found）
+      { "ColinKennedy/mega.cmdparse", dependencies = { "ColinKennedy/mega.logging" } },
       "nvim-mini/mini.pick",
       "nvim-telescope/telescope.nvim",
       "hrsh7th/nvim-cmp",

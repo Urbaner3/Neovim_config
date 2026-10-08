@@ -113,6 +113,8 @@ return {
     dependencies = {
       "nvim-lua/plenary.nvim",
       "MunifTanjim/nui.nvim",
+      -- avante 上游必備依賴（缺了會 Failed to source plugin/avante.lua: mega.cmdparse not found）
+      { "ColinKennedy/mega.cmdparse", dependencies = { "ColinKennedy/mega.logging" } },
       "nvim-mini/mini.pick",
       "nvim-telescope/telescope.nvim",
       "hrsh7th/nvim-cmp",
